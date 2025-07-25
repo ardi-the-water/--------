@@ -206,14 +206,6 @@ async function handleInvoiceListActions(e) {
     if (targetButton.classList.contains('view-btn')) {
         renderInvoicesPage('form', id);
     } else if (targetButton.classList.contains('print-btn')) {
-        const printWindow = window.open('', '_blank');
-        if (!printWindow) {
-            await showCustomAlert('مرورگر شما اجازه باز کردن پنجره جدید را نمی‌دهد. لطفا پاپ‌آپ‌ها را برای این سایت فعال کنید.', 'خطا');
-            return;
-        }
-        
-        printWindow.document.write('<html><head><title>در حال آماده‌سازی چاپ...</title></head><body><p>لطفا صبر کنید...</p></body></html>');
-
         const allInvoices = await window.db.getAllInvoices();
         const invoice = allInvoices.find(inv => inv.id === id);
         const allCustomers = await window.db.getAllCustomers();
@@ -245,7 +237,12 @@ async function handleInvoiceListActions(e) {
                     .company-logo { max-width: 150px; max-height: 80px; }
                     .footer { text-align: center; margin-top: 30px; padding-top: 15px; border-top: 1px solid #eee; font-size: 12px; color: #777; }
                     .footer a { color: #555; text-decoration: none; }
-                    @media print { body { margin: 0; background-color: white; } .invoice-box { box-shadow: none; border: none; margin: 0; max-width: 100%; } .no-print { display: none; } }
+                    @media print { 
+                        body { margin: 0; background-color: white; } 
+                        .invoice-box { box-shadow: none; border: none; margin: 0; max-width: 100%; } 
+                        .no-print { display: none; } 
+                        @page { margin: 0; }
+                    }
                 </style>
             </head>
             <body>
@@ -283,15 +280,28 @@ async function handleInvoiceListActions(e) {
             </body>
             </html>
         `;
-        
-        printWindow.document.open();
-        printWindow.document.write(invoiceHTML);
-        printWindow.document.close();
 
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'fixed';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        document.body.appendChild(iframe);
+
+        const doc = iframe.contentWindow.document;
+        doc.open();
+        doc.write(invoiceHTML);
+        doc.close();
+
+        // Use a timeout to ensure content and styles are loaded before printing
         setTimeout(() => {
-            printWindow.print();
-            printWindow.close();
-        }, 250); // A short delay to ensure all content and images are loaded
+            iframe.contentWindow.focus(); // Focus is important for some browsers
+            iframe.contentWindow.print();
+            // Remove the iframe after a delay to allow the print dialog to open
+            setTimeout(() => {
+                document.body.removeChild(iframe);
+            }, 1000);
+        }, 500);
 
     } else if (targetButton.classList.contains('convert-btn')) {
         const userConfirmed = await showCustomConfirm('آیا از تبدیل این پیش‌فاکتور به فاکتور قطعی مطمئن هستید؟ موجودی انبار کسر خواهد شد.', 'تایید تبدیل');
