@@ -206,14 +206,92 @@ async function handleInvoiceListActions(e) {
     if (targetButton.classList.contains('view-btn')) {
         renderInvoicesPage('form', id);
     } else if (targetButton.classList.contains('print-btn')) {
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
+            await showCustomAlert('مرورگر شما اجازه باز کردن پنجره جدید را نمی‌دهد. لطفا پاپ‌آپ‌ها را برای این سایت فعال کنید.', 'خطا');
+            return;
+        }
+        
+        printWindow.document.write('<html><head><title>در حال آماده‌سازی چاپ...</title></head><body><p>لطفا صبر کنید...</p></body></html>');
+
         const allInvoices = await window.db.getAllInvoices();
         const invoice = allInvoices.find(inv => inv.id === id);
         const allCustomers = await window.db.getAllCustomers();
         const customer = allCustomers.find(c => c.id === invoice.customerId);
         const settings = await window.db.getSettings() || {};
+
+        const invoiceHTML = `
+            <!DOCTYPE html>
+            <html lang="fa" dir="rtl">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>چاپ فاکتور ${toPersianDigits(invoice.id + 1000)}</title>
+                <link rel="preconnect" href="https://fonts.googleapis.com">
+                <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+                <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+                <style>
+                    body { font-family: 'Vazirmatn', sans-serif; direction: rtl; margin: 0; background-color: #f8f9fa; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                    .invoice-box { max-width: 800px; margin: 20px auto; padding: 30px; border: 1px solid #eee; box-shadow: 0 0 10px rgba(0, 0, 0, 0.15); font-size: 16px; line-height: 24px; color: #555; background-color: white; }
+                    .invoice-box table { width: 100%; line-height: inherit; text-align: right; border-collapse: collapse; }
+                    .invoice-box table td { padding: 8px; vertical-align: top; }
+                    .invoice-box table tr.top table td { padding-bottom: 20px; }
+                    .invoice-box table tr.information table td { padding-bottom: 40px; }
+                    .invoice-box table tr.heading td { background: #eee; border-bottom: 1px solid #ddd; font-weight: bold; text-align: center; }
+                    .invoice-box table tr.item td { border-bottom: 1px solid #eee; text-align: center; }
+                    .invoice-box table tr.item td:first-child { text-align: right; }
+                    .invoice-box table tr.total td { border-top: 1px solid #eee; }
+                    .invoice-box table tr.total.final-total td { border-top: 2px solid #333; font-weight: bold; }
+                    .company-logo { max-width: 150px; max-height: 80px; }
+                    .footer { text-align: center; margin-top: 30px; padding-top: 15px; border-top: 1px solid #eee; font-size: 12px; color: #777; }
+                    .footer a { color: #555; text-decoration: none; }
+                    @media print { body { margin: 0; background-color: white; } .invoice-box { box-shadow: none; border: none; margin: 0; max-width: 100%; } .no-print { display: none; } }
+                </style>
+            </head>
+            <body>
+                <div class="invoice-box">
+                    <table cellpadding="0" cellspacing="0">
+                        <tr class="top"><td colspan="5"><table><tr>
+                            <td class="title"><img src="${settings.companyLogo || ''}" class="company-logo" style="${!settings.companyLogo ? 'display:none;' : ''}"></td>
+                            <td><h2>${settings.companyName || 'فروشگاه شما'}</h2><p style="white-space: pre-line;">${settings.companyAddress || ''}<br>${toPersianDigits(settings.companyPhone || '')}</p></td>
+                            <td style="text-align: left;">شماره فاکتور: <strong>${toPersianDigits(invoice.id + 1000)}</strong><br>تاریخ: ${new Date(invoice.createdAt).toLocaleDateString('fa-IR')}<br>نوع: ${invoice.type === 'invoice' ? 'فاکتور فروش' : 'پیش فاکتور'}</td>
+                        </tr></table></td></tr>
+                        <tr class="information"><td colspan="5"><table><tr><td>
+                            <h3>مشخصات خریدار</h3>
+                            <p><strong>نام:</strong> ${customer.firstname} ${customer.lastname}<br><strong>تلفن:</strong> ${toPersianDigits(customer.phone)}<br><strong>آدرس:</strong> ${customer.address || ''}</p>
+                        </td></tr></table></td></tr>
+                        <tr class="heading"><td>کالا</td><td>ردیف</td><td>تعداد</td><td>قیمت واحد (تومان)</td><td>مبلغ کل (تومان)</td></tr>
+                        ${invoice.items.map((item, index) => `<tr class="item">
+                            <td style="text-align: right;">${item.productName || item.name}</td>
+                            <td>${toPersianDigits(index + 1)}</td>
+                            <td>${toPersianDigits(item.quantity)}</td>
+                            <td>${toPersianDigits(item.price.toLocaleString())}</td>
+                            <td>${toPersianDigits((item.quantity * item.price).toLocaleString())}</td>
+                        </tr>`).join('')}
+                    </table>
+                    <table style="margin-top: 20px;">
+                         <tr class="total"><td style="text-align: left;" colspan="4">جمع کل</td><td style="text-align: center;">${toPersianDigits(invoice.subtotal.toLocaleString())} تومان</td></tr>
+                        <tr class="total"><td style="text-align: left;" colspan="4">تخفیف</td><td style="text-align: center;">${toPersianDigits(invoice.discount.toLocaleString())} تومان</td></tr>
+                        <tr class="total final-total"><td style="text-align: left;" colspan="4">مبلغ نهایی قابل پرداخت</td><td style="text-align: center;">${toPersianDigits(invoice.total.toLocaleString())} تومان</td></tr>
+                    </table>
+                    ${invoice.description ? `<div style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #eee;"><strong>توضیحات:</strong><p style="white-space: pre-wrap; margin-top: 5px;">${invoice.description}</p></div>` : ''}
+                    <div class="footer">
+                        <p>سپاس از انتخاب شما</p>
+                        <p class="no-print">حسابداری تپور | ساخت و توسعه: <a href="https://mykh.ir/" target="_blank">علی خداکرمی</a></p>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
         
-        localStorage.setItem('currentInvoice', JSON.stringify({ invoice, customer, settings }));
-        window.open('print-invoice.html', '_blank');
+        printWindow.document.open();
+        printWindow.document.write(invoiceHTML);
+        printWindow.document.close();
+
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 250); // A short delay to ensure all content and images are loaded
 
     } else if (targetButton.classList.contains('convert-btn')) {
         const userConfirmed = await showCustomConfirm('آیا از تبدیل این پیش‌فاکتور به فاکتور قطعی مطمئن هستید؟ موجودی انبار کسر خواهد شد.', 'تایید تبدیل');
