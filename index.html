@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سیستم حسابداری تپور</title>
+    
+    <!-- Google Fonts: Vazirmatn -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Excel Export Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div id="login-overlay">
+        <div class="login-box">
+            <h2>ورود به سیستم حسابداری تپور</h2>
+            <p>برای دسترسی به برنامه، لطفا رمز عبور خود را وارد کنید.</p>
+            <form id="login-form">
+                <input type="password" id="password-input" placeholder="رمز عبور" required>
+                <button type="submit" class="btn btn-primary">ورود</button>
+            </form>
+            <p id="login-error" class="error-message"></p>
+        </div>
+    </div>
+
+    <div class="app-layout" style="display: none;">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h2>حسابداری تپور</h2>
+            </div>
+            <ul>
+                <li><a href="#" data-page="dashboard"><span class="icon-placeholder"></span>داشبورد</a></li>
+                <li><a href="#" data-page="invoices"><span class="icon-placeholder"></span>فاکتورها</a></li>
+                <li><a href="#" data-page="products"><span class="icon-placeholder"></span>کالاها</a></li>
+                <li><a href="#" data-page="customers"><span class="icon-placeholder"></span>مشتریان</a></li>
+                <li><a href="#" data-page="settings"><span class="icon-placeholder"></span>تنظیمات</a></li>
+            </ul>
+            <div class="sidebar-footer">
+                <p>ساخت و توسعه: <a href="https://mykh.ir/" target="_blank">علی خداکرمی</a></p>
+            </div>
+        </nav>
+        <div class="main-content">
+            <header>
+                <h1>سیستم حسابداری تپور</h1>
+            </header>
+            <main id="app-container">
+                <!-- App content will be rendered here by JavaScript -->
+            </main>
+        </div>
+    </div>
+    
+    <!-- Database -->
+    <script src="db.js"></script>
+
+    <!-- Page Modules -->
+    <script src="pages/dashboard.js"></script>
+    <script src="pages/products.js"></script>
+    <script src="pages/customers.js"></script>
+    <script src="pages/invoices.js"></script>
+    <script src="pages/settings.js"></script>
+    <script src="excel-export.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script src="modal.js"></script>
+    <script src="auth.js"></script>
+    <script src="app.js"></script>
+
+    <!-- Custom Modal -->
+    <div id="custom-modal-overlay" class="modal-overlay">
+        <div class="modal-box">
+            <h3 id="modal-title">عنوان پیام</h3>
+            <p id="modal-message">متن پیام در اینجا قرار می‌گیرد.</p>
+            <div id="modal-actions" class="modal-actions">
+                <!-- Buttons will be injected here by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <button id="scroll-to-top-btn" title="برو به بالا">&uarr;</button>
+</body>
+</html>
